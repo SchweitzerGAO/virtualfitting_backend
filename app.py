@@ -5,7 +5,7 @@ import time
 from flask_cors import CORS
 app = Flask(__name__)
 
-# CORS(app, resources=r'/*')  # 解决可能存在的跨域问题
+CORS(app, resources=r'/*')  # 解决可能存在的跨域问题
 
 UPLOAD_FOLDER = 'upload'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER  # 设置文件上传的目标文件夹
