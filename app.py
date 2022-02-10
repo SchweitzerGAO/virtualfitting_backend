@@ -31,7 +31,7 @@ def mov_photo(src, tar=image_path):
         os.mkdir(data_path)
     os.mkdir(image_path)
     try:
-        shutil.copy(src, tar)
+        shutil.move(src, tar)
     except IOError as e:
         print('Unable to copy file')
 
