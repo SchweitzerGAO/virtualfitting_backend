@@ -64,9 +64,9 @@ def api_upload():
 # 下载文件（暂时用不到）
 @app.route("/api/download/<path:filename>", methods=['GET'])
 def downloader(filename):
-    dirpath = os.path.join(app.root_path, 'upload')  # 这里是下在目录，从工程的根目录写起，比如你要下载static/js里面的js文件，这里就要写“static/js”
-    # return send_from_directory(dirpath, filename, as_attachment=False)  # as_attachment=True 一定要写，不然会变成打开，而不是下载
-    return send_from_directory(dirpath, filename, as_attachment=True)  # as_attachment=True  下载
+    dir_path = os.path.join(app.root_path, 'upload')  # 这里是下在目录，从工程的根目录写起，比如你要下载static/js里面的js文件，这里就要写“static/js”
+    # return send_from_directory(dir_path, filename, as_attachment=False)  # as_attachment=True 一定要写，不然会变成打开，而不是下载
+    return send_from_directory(dir_path, filename, as_attachment=True)  # as_attachment=True  下载
 
 
 if __name__ == '__main__':

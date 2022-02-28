@@ -7,7 +7,7 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/upload" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7 (smplify-x)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.7 (smplify-x) (2)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TemplatesService">
