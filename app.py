@@ -21,6 +21,12 @@ keypoint_path = 'D:/项目/virtual-fitting/smplify-x-master/data/keypoints'  # �
 
 file_name = ''
 
+files = []
+
+# docker 容器ID
+docker_container_id = 'bd05c03ea4a4'
+docker_container_long_id = 'bd05c03ea4a47e14b383d08e783c9ec81bfdb6f98d7fb2659cab2f2395fa2f9b'
+
 
 # 判断文件是否合法
 def allowed_file(filename):
@@ -37,8 +43,51 @@ def mov_photo(src, tar=image_path):
     os.mkdir(image_path)
     try:
         shutil.copy(src, tar)
-    except IOError as e:
+    except IOError:
         print('Unable to copy file')
+
+
+# 服务器端利用docker容器生成关键点
+def generate_keypoints_docker():
+    # 获取上传的文件
+    global files
+    files = os.listdir('./upload')
+    # 清空之前的文件，加快重建速度
+    os.system('docker exec ' + docker_container_id + ' /bin/bash -c \'rm -rf ./images && mkdir ./images\'')
+    os.system('docker exec ' + docker_container_id + ' /bin/bash -c \'rm -rf ./keypoints && mkdir ./keypoints\'')
+    # 将主机上用户的照片传到docker容器中
+    os.system(
+        'docker cp ./upload/' + files[0] + ' ' + docker_container_long_id + ':/openpose-master/images/' + files[0])
+    # 执行openpose 关键点提取
+    os.system(
+        'docker exec ' + docker_container_id + '/bin/bash -c \'./build/examples/openpose/openpose.bin --image_dir '
+                                               './images/ --write_json ./keypoints/\'')
+    # 清理，重建data文件夹
+    os.system('rm -rf ../data && mkdir ../data/images')
+
+    # 将生成的关键点送回主机
+    os.system('docker cp ' + docker_container_long_id + ':/openpose-master/keypoints/ ../data/keypoints')
+
+
+# 服务器端人体重建
+def generate_model_docker():
+    # 激活conda环境
+    os.system('conda activate smplify-x')
+
+    # 清理output文件夹
+    os.system('rm -rf ../output && mkdir ../output')
+    # 进行模型重建
+    os.system("python ../main.py --config cfg_files/fit_smplx.yaml --data_folder ./data --output_folder "
+              "./output "
+              "--visualize='False' --model_folder ./models --vposer_ckpt ./vposer_v1_0 --part_segm_fn "
+              "smplx_parts_segm.pkl")
+
+
+@app.route('/api/docker/get/model', methods=['GET'])
+def get_model_docker():
+    generate_keypoints_docker()
+    generate_model_docker()
+    return jsonify({"code": 200, "msg": '模型重建成功'})
 
 
 '''下面的生成关键点和生成模型的都原内容写到生成文件的api里面了，没有调用，这里只是方便调试和方便明白两部分的代码功能'''
@@ -49,7 +98,8 @@ def generate_keypoints():
     os.chdir("D:/项目/virtual-fitting/openpose-gpu")
     print('processing.wait for seconds')
     os.system(
-        "bin\\OpenPoseDemo.exe --image_dir D:\\项目\\virtual-fitting\\smplify-x-master\\data\\images --hand --face --write_json D:\\项目\\virtual-fitting\\smplify-x-master\\data\\keypoints")
+        "bin\\OpenPoseDemo.exe --image_dir D:\\项目\\virtual-fitting\\smplify-x-master\\data\\images --hand --face "
+        "--write_json D:\\项目\\virtual-fitting\\smplify-x-master\\data\\keypoints")
     print('generate_keypoints:done')
 
 
@@ -59,7 +109,8 @@ def generate_model():
     os.chdir("D:/项目/virtual-fitting/smplify-x-master")
     print('processing.This may take a few minutes')
     os.system(
-        "python smplifyx/main.py --config cfg_files/fit_smplx.yaml --data_folder ./data --output_folder ./output --visualize='False' --model_folder ./models --vposer_ckpt ./vposer_v1_0 --part_segm_fn smplx_parts_segm.pkl")
+        "python smplifyx/main.py --config cfg_files/fit_smplx.yaml --data_folder ./data --output_folder ./output "
+        "--visualize='False' --model_folder ./models --vposer_ckpt ./vposer_v1_0 --part_segm_fn smplx_parts_segm.pkl")
     print('generate_model:done')
 
 
@@ -99,7 +150,7 @@ def get_file():
         return send_from_directory('D:\项目\\virtual-fitting\smplify-x-master\output\meshes\\1', '000.obj',
                                    as_attachment=True)  # as_attachment=True  下载
         # return path
-    except Exception as e:
+    except Exception:
         return jsonify({"code": 500, "msg": "模型生成error"})
 
 
@@ -124,18 +175,17 @@ def api_upload():
         new_filename = str(unix_time) + '.' + ext  # 修改文件名
         save_filename = os.path.join(file_dir, new_filename)
         f.save(save_filename)  # 保存文件到upload目录
-        mov_photo(save_filename)  # 复制照片到smplify-x相应目录下
+        mov_photo(save_filename, tar='../data/images/')  # 复制照片到smplify-x相应目录下
         return jsonify({"code": 200, "msg": "上传成功"})
     else:
         return jsonify({"code": 400, "msg": "文件格式不正确"})
 
 
 # 下载文件（暂时用不到）
-@app.route("/api/download/<path:filename>", methods=['GET'])
-def downloader(filename):
-    dirpath = os.path.join(app.root_path, 'upload')  # 这里是下在目录，从工程的根目录写起，比如你要下载static/js里面的js文件，这里就要写“static/js”
-    # return send_from_directory(dirpath, filename, as_attachment=False)  # as_attachment=True 一定要写，不然会变成打开，而不是下载
-    return send_from_directory(dirpath, filename, as_attachment=True)  # as_attachment=True  下载
+@app.route("/api/download", methods=['GET'])
+def downloader():
+    dirpath = '../output/meshes/'+files[0]
+    return send_from_directory(dirpath, '000.obj', as_attachment=True)  # as_attachment=True  下载
 
 
 if __name__ == '__main__':
