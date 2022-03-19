@@ -77,10 +77,10 @@ def generate_model_docker():
     # 清理output文件夹
     os.system('rm -rf ../output && mkdir ../output')
     # 进行模型重建
-    os.system("python ../main.py --config cfg_files/fit_smplx.yaml --data_folder ./data --output_folder "
-              "./output "
-              "--visualize='False' --model_folder ./models --vposer_ckpt ./vposer_v1_0 --part_segm_fn "
-              "smplx_parts_segm.pkl")
+    os.system("python ../smplifyx/main.py --config cfg_files/fit_smplx.yaml --data_folder ../data --output_folder "
+              "../output "
+              "--visualize='False' --model_folder ../models --vposer_ckpt ../vposer_v1_0 --part_segm_fn "
+              "../smplx_parts_segm.pkl")
 
 
 @app.route('/api/docker/get/model', methods=['GET'])
